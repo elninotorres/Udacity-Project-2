@@ -36,27 +36,42 @@ class Blockchain {
   addBlock(newBlock) {
     // Block height
     this.getBlockHeight().then((height) => {
-      newBlock.Height = height + 1;
-
-      // UTC timestamp
-      newBlock.time = new Date().getTime().toString().slice(0, -3);
-      // previous block hash
-      if (height > 0) {
-        // newBlock.previousBlockHash = this.chain[this.chain.length - 1].hash;
-        this.getBlock(height - 1).then((block) => {
-          newBlock.previousBlockHash = block[height - 1].hash;
+      if (height === 0) {
+        newBlock.height = 0;
+        newBlock.time = new Date().getTime().toString().slice(0, -3);
+        newBlock.previousBlockHash = 0;
+        newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
+        this.bd.addLevelDBData(newBlock.height, JSON.stringify(newBlock).toString()).then((value) => {
+          console.log(value + 'Added');
         }).catch((err) => {
-          console.log('error' + err);
+          console.log(err);
         });
+      } else {
+        newBlock.height = height + 1;
+
+        // UTC timestamp
+        newBlock.time = new Date().getTime().toString().slice(0, -3);
+        // previous block hash
+        if (height > 0) {
+          // newBlock.previousBlockHash = this.chain[this.chain.length - 1].hash;
+          this.getBlock(height - 1).then((blockJSon) => {
+            let block = JSON.parse(blockJSon);
+            // console.log(block);
+            newBlock.previousBlockHash = block.hash;
+            newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
+            // Adding block object to chain
+            this.bd.addLevelDBData(newBlock.height, JSON.stringify(newBlock).toString()).then((value) => {
+              console.log(value + 'Added');
+            }).catch((err) => {
+              console.log(err);
+            });
+            console.log(newBlock);
+          }).catch((err) => {
+            console.log('error' + err);
+          });
+        }
+
       }
-      // Block hash with SHA256 using newBlock and converting to a string
-      newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
-      // Adding block object to chain
-      this.bd.addLevelDBData(newBlock.height, JSON.stringify(newBlock).toString()).then((value) => {
-        console.log(value + 'Added');
-      }).catch((err) => {
-        console.log(err);
-      });
     }).catch((err) => {
       console.log('error' + err);
     });
